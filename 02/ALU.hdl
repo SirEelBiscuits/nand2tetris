@@ -56,15 +56,13 @@ CHIP ALU {
 		Mux16(a=xAndY, b=xPlusY, sel=f, out=fOfXY);
 		Not16(in=fOfXY, out=nFOfXY);
 
-		Mux16(a=fOfXY, b=nFOfXY, sel=no, out=out);
-		Mux16(a=fOfXY, b=nFOfXY, sel=no, out=final);
+		Mux16(a=fOfXY, b=nFOfXY, sel=no, out=out, out[0..7]=foxyLow, out[8..15]=foxyHigh, out[15]=ng);
 
 		//------------------------------------------
 
-		Not16(in=fOfXY, out[0..7]=foxyLow, out[8..15]=foxyHigh);
 		Or8Way(in=foxyLow, out=orA);
 		Or8Way(in=foxyHigh, out=orB);
-		Or(a=orA, b=orB, out=zr);
+		Or(a=orA, b=orB, out=nearlyZr);
+		Not(in=nearlyZr, out=zr);
 
-		And16(a=final, b[15]=true, b[0..14]=false, out[15]=ng);
 }
