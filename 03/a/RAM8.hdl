@@ -15,5 +15,16 @@ CHIP RAM8 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+		DMux8Way(in=load, sel=address, a=l0, b=l1, c=l2, d=l3, e=l4, f=l5, g=l6, h=l7);
+
+		Register(in=in, load=l0, out=sel0);
+		Register(in=in, load=l1, out=sel1);
+		Register(in=in, load=l2, out=sel2);
+		Register(in=in, load=l3, out=sel3);
+		Register(in=in, load=l4, out=sel4);
+		Register(in=in, load=l5, out=sel5);
+		Register(in=in, load=l6, out=sel6);
+		Register(in=in, load=l7, out=sel7);
+
+		Mux8Way16(a=sel0, b=sel1, c=sel2, d=sel3, e=sel4, f=sel5, g=sel6, h=sel7, sel=address, out=out);
 }
