@@ -1,0 +1,33 @@
+NANDS		DFFs		ChipName
+------------------------
+1								NAND
+1								NOT
+2								AND
+3								OR
+6								XOR
+4								Mux
+5								DMux
+21							Or8Way
+16							Not16
+32							And16
+48							Or16
+64							Mux16
+192							Mux4Way16
+448							Mux8Way16
+15							DMux4Way
+35							DMux8Way
+
+8								HalfAdder
+19							FullAdder
+304							Add16
+128							Inc16
+814							ALU
+
+4				1				Bit
+64			16			Register
+430			16			PC
+995			128			RAM8
+8443		1024		RAM64
+68027		8192		RAM512
+544699	65536		RAM4K
+2179003	262144	RAM16K
