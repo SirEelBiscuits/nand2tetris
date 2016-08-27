@@ -10,13 +10,12 @@
 #include <vector>
 #include <map>
 
-using SymbolTable = std::map<std::string, int>;
+#include "types.h"
+#include "parser.h"
 
-std::vector<std::string> getWholeFile  ();
-SymbolTable              getSymbols    (std::vector<std::string> lines);
-int                      getWordsInLine(std::string line);
-std::string              assembleFile  (SymbolTable symbols);
-int                      writeFile     (std::string fileContents);
+InstructionList getWholeFile();
+SymbolTable     getSymbols  (InstructionList lines);
+int             writeFile   (string fileContents);
 
 int main(int argc, char* argv[]) {
 	auto wholeFile = getWholeFile();
@@ -25,24 +24,11 @@ int main(int argc, char* argv[]) {
 	return writeFile(output);
 }
 
-std::vector<std::string> getWholeFile() {
-	std::vector<std::string> lines{};
+InstructionList getWholeFile() {
+	InstructionList lines{};
 	return lines;
 }
 
-SymbolTable getSymbols(std::vector<std::string> lines) {
-	SymbolTable table{};
-	return table;
-}
-
-int getWordsInLine(std::string line) {
-	return 0;
-}
-
-std::string assembleFile(SymbolTable symbols) {
-	return "";
-}
-
-int writeFile(std::string fileContents) {
+int writeFile(string fileContents) {
 	return EXIT_SUCCESS;
 }
