@@ -19,8 +19,7 @@ int             writeFile   (string fileContents);
 
 int main(int argc, char* argv[]) {
 	auto wholeFile = getWholeFile();
-	auto symbols   = getSymbols(wholeFile);
-	auto output    = assembleFile(symbols);
+	auto output    = assembleFile(wholeFile);
 	return writeFile(output);
 }
 
