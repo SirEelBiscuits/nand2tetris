@@ -13,13 +13,13 @@
 using SymbolTable = std::map<std::string, int>;
 
 std::vector<std::string> getWholeFile  ();
-SymbolTable              getSymbols    ();
+SymbolTable              getSymbols    (std::vector<std::string> lines);
 int                      getWordsInLine(std::string line);
 std::string              assembleFile  (SymbolTable symbols);
 int                      writeFile     (std::string fileContents);
 
 int main(int argc, char* argv[]) {
-	auto wholeFile = getWholeFile;
+	auto wholeFile = getWholeFile();
 	auto symbols   = getSymbols(wholeFile);
 	auto output    = assembleFile(symbols);
 	return writeFile(output);
@@ -30,7 +30,7 @@ std::vector<std::string> getWholeFile() {
 	return lines;
 }
 
-SymbolTable getSymbols() {
+SymbolTable getSymbols(std::vector<std::string> lines) {
 	SymbolTable table{};
 	return table;
 }
