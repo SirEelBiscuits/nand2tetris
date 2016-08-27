@@ -8,6 +8,7 @@ using match = std::smatch;
 template<int n>
 using bitset = std::bitset<n>;
 
+static regex Nothing { R"(^$)" };
 static regex Label  { R"(^\(([a-zA-Z._$][a-zA-Z._$0-9]*)\)$)" };
 static regex AInstr { R"(^@([a-zA-Z._$][a-zA-Z._$0-9]*)$)" };
 static regex CInstr { R"(^(.*=.*;.*|.*;.*|.*=.*)$)" };
@@ -25,7 +26,12 @@ static regex JMPEQ { R"(JEQ|JGE|JLE|JMP)" };
 static regex JMPGT { R"(JGT|JGE|JNE|JMP)" };
 
 // regex* because regex doesn't have operator< defined, which is needed
-static map<regex*, size_t> wordCountLookup = { {&AInstr, 1}, {&CInstr, 1}, {&Label, 0} };
+static map<regex*, size_t> wordCountLookup = {
+ 	{&AInstr, 1},
+ 	{&CInstr, 1},
+ 	{&Label, 0},
+	{&Nothing, 0}
+};
 
 static regex CInstrZero    { R"(^0$)" };
 static regex CInstrOne     { R"(^1$)" };
@@ -206,7 +212,7 @@ string assembleFile(InstructionList const& program) {
 	auto symbols = getSymbols(program);
 	string output;
 	for(auto line : program) {
-		output += assembleLine(line, symbols);
+		output += assembleLine(regex_replace(line, regex("//.*"), ""), symbols);
 	}
 	return "";
 }
