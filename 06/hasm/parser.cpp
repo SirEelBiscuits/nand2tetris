@@ -99,11 +99,35 @@ int getWordsInLine(string line) {
 		if(regex_match(line, *kvp.first))
 			return kvp.second;
 	}
-	return -1;
+	return 0;
 }
 
 SymbolTable getSymbols(InstructionList lines) {
-	auto table = SymbolTable{};
+	auto table = SymbolTable {
+		{ "R0", 0 },
+		{ "R1", 1 },
+		{ "R2", 2 },
+		{ "R3", 3 },
+		{ "R4", 4 },
+		{ "R5", 5 },
+		{ "R6", 6 },
+		{ "R7", 7 },
+		{ "R8", 8 },
+		{ "R9", 9 },
+		{ "R10", 10 },
+		{ "R11", 11 },
+		{ "R12", 12 },
+		{ "R13", 13 },
+		{ "R14", 14 },
+		{ "R15", 15 },
+		{ "SP", 0 },
+		{ "LCL", 1 },
+		{ "ARG", 2 },
+		{ "THIS", 3 },
+		{ "THAT", 4 },
+		{ "SCREEN", 16384 },
+		{ "KBD", 24567 }
+	};
 	auto lineCount = 0;
 
 	for(auto line : lines) {
@@ -111,12 +135,20 @@ SymbolTable getSymbols(InstructionList lines) {
 		if(regex_match(line, res, Label)) {
 			table[res[1]] = lineCount;
 		}
-		lineCount += getWordsInLine(line);
+		auto words = getWordsInLine(line);
+		lineCount += words;
+
+#ifdef DEBUG
+		std::cout << lineCount << "\t" << line << "\t#" << words << std::endl;
+#endif
 	}
 	return table;
 }
 
 string assembleAInstr(string const& line, SymbolTable const& symbols) {
+#ifdef DEBUG
+	std::cout << "AInstr ";
+#endif
 	match m;
 	regex_match(line, m, AInstr);
 	auto arg = 0u;
@@ -131,7 +163,7 @@ string assembleAInstr(string const& line, SymbolTable const& symbols) {
 	}
 
 	bitset<16> rep(arg);
-	rep[15]=1;
+	rep[15]=0;
 
 	return rep.to_string();
 }
@@ -147,6 +179,9 @@ bitset<16> assembleControlFlags(string VAL) {
 }
 
 string assembleCInstr(string const& line, SymbolTable const& symbols) {
+#ifdef DEBUG
+	std::cout << "CInstr ";
+#endif
 	// categorise into JMP/SET/BOTH
 	string SET{};
 	string VAL{};
@@ -169,19 +204,21 @@ string assembleCInstr(string const& line, SymbolTable const& symbols) {
 	bitset<16> instruction(CInstrBase);
 	// set DST flags
 	// TODO replace with a function
-	if(!regex_match(SET, m, CInstrDST)) {
-		// ??? DST is garbage
-		return "";
-	} else if(m[1].length() + m[2].length() + m[3].length() == 0) {
-		// ??? DST doesn't have A, M, or D set
-		return "";
+	if(SET.length() != 0) {
+		if(!regex_match(SET, m, CInstrDST)) {
+			// ??? DST is garbage
+			return "";
+		} else if(m[1].length() + m[2].length() + m[3].length() == 0) {
+			// ??? DST doesn't have A, M, or D set
+			return "";
+		}
+		instruction[DstABit] = m[1].length() != 0;
+		instruction[DstMBit] = m[2].length() != 0;
+		instruction[DstDBit] = m[3].length() != 0;
 	}
-	instruction[DstABit] = m[1].length() != 0;
-	instruction[DstMBit] = m[2].length() != 0;
-	instruction[DstDBit] = m[3].length() != 0;
 
 	// set indirection flag
-	instruction[IndirectionBit] = regex_match(VAL, regex(R"(M)"));
+	instruction[IndirectionBit] = regex_match(VAL, regex(R"(.*M.*)"));
 
 	// set control flags
 	instruction |= assembleControlFlags(VAL);
@@ -189,7 +226,7 @@ string assembleCInstr(string const& line, SymbolTable const& symbols) {
 	// set jump flags
 	instruction[JMPLTBit] = regex_match(JMP, JMPLT);
 	instruction[JMPEQBit] = regex_match(JMP, JMPEQ);
-	instruction[JMPLTBit] = regex_match(JMP, JMPGT);
+	instruction[JMPGTBit] = regex_match(JMP, JMPGT);
 
 	//output
 	return instruction.to_string();
@@ -205,16 +242,24 @@ string assembleLine(string const& line, SymbolTable const& symbols) {
 		if(regex_match(line, res, *kvp.first))
 			return kvp.second(line, symbols);
 	}
-	// ???
+#ifdef DEBUG
+	std::cout << "Unknown: \"" << line << "\"";
+#endif
 	return "";
 }
 
 string assembleFile(InstructionList const& program) {
 	auto symbols = getSymbols(program);
 	string output;
+	auto lineNum = 0;
 	for(auto line : program) {
-		auto assembledLine = assembleLine(regex_replace(line, regex("//.*"), ""), symbols);
-		output += assembledLine + "\n";
+		++lineNum;
+		auto assembledLine = assembleLine(line, symbols);
+		if(assembledLine.length() > 0)
+			output += assembledLine + "\n";
+#ifdef DEBUG
+		std::cout << "-> " << assembledLine << std::endl;
+#endif
 	}
 	return output;
 }
