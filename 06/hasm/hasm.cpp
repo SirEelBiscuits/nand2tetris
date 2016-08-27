@@ -6,6 +6,7 @@
  * @author Jameson aka SirEel
  */
 
+#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -23,8 +24,16 @@ int main(int argc, char* argv[]) {
 	return writeFile(output);
 }
 
-InstructionList getWholeFile() {
+InstructionList getWholeFile(string fileName) {
+	using std::ifstream;
+
+	ifstream file;
+	file.open(fileName);
+	string line;
 	InstructionList lines{};
+	while(getline(file, line)
+			lines.push_back(line);
+
 	return lines;
 }
 

@@ -2,4 +2,4 @@
 
 #include "types.h"
 
-string assembleFile(InstructionList program);
+string assembleFile(InstructionList const& program);
