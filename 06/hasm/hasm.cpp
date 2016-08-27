@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <regex>
 
 #include "types.h"
 #include "parser.h"
@@ -33,8 +34,10 @@ InstructionList getWholeFile(string fileName) {
 	file.open(fileName);
 	string line;
 	InstructionList lines{};
-	while(getline(file, line))
-			lines.push_back(line);
+	while(getline(file, line)) {
+		line = regex_replace(line, std::regex("\[[:space:]]"), "");
+		lines.push_back(line);
+	}
 
 	return lines;
 }

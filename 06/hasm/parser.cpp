@@ -3,6 +3,8 @@
 #include <regex>
 #include <bitset>
 
+#include <iostream>
+
 using regex = std::regex;
 using match = std::smatch;
 template<int n>
@@ -10,10 +12,10 @@ using bitset = std::bitset<n>;
 
 static regex Nothing { R"(^$)" };
 static regex Label  { R"(^\(([a-zA-Z._$][a-zA-Z._$0-9]*)\)$)" };
-static regex AInstr { R"(^@([a-zA-Z._$][a-zA-Z._$0-9]*)$)" };
+static regex AInstr { R"(^@([a-zA-Z0-9._$]+)$)" };
 static regex CInstr { R"(^(.*=.*;.*|.*;.*|.*=.*)$)" };
 
-static regex Number { R"([1-9][0-9]*)" };
+static regex Number { R"([1-9][0-9]*|0)" };
 
 static regex CInstrNoJMP  { R"(^(.*)=(.*)$)" };
 static regex CInstrNoSET  { R"(^(.*);(.*)$)" };
@@ -109,7 +111,6 @@ SymbolTable getSymbols(InstructionList lines) {
 		if(regex_match(line, res, Label)) {
 			table[res[1]] = lineCount;
 		}
-
 		lineCount += getWordsInLine(line);
 	}
 	return table;
@@ -212,8 +213,9 @@ string assembleFile(InstructionList const& program) {
 	auto symbols = getSymbols(program);
 	string output;
 	for(auto line : program) {
-		output += assembleLine(regex_replace(line, regex("//.*"), ""), symbols);
+		auto assembledLine = assembleLine(regex_replace(line, regex("//.*"), ""), symbols);
+		output += assembledLine + "\n";
 	}
-	return "";
+	return output;
 }
 
