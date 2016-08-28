@@ -44,11 +44,11 @@ static regex CInstrNotD    { R"(^!D$)" };
 static regex CInstrNotAM   { R"(^![AM]$)" };
 static regex CInstrNegD    { R"(^-D$)" };
 static regex CInstrNegAM   { R"(^-[AM]$)" };
-static regex CInstrIncD    { R"(^D+1$)" };
-static regex CInstrIncAM   { R"(^[AM]+1$)" };
+static regex CInstrIncD    { R"(^D[+]1$)" };
+static regex CInstrIncAM   { R"(^[AM][+]1$)" };
 static regex CInstrDecD    { R"(^D-1$)" };
 static regex CInstrDecAM   { R"(^[AM]-1$)" };
-static regex CInstrSum     { R"(^D+[AM]$)" };
+static regex CInstrSum     { R"(^D[+][AM]$)" };
 static regex CInstrDLessAM { R"(^D-[AM]$)" };
 static regex CInstrAMLessD { R"(^[AM]-D$)" };
 static regex CInstrDAndAM  { R"(^D&[AM]$)" };
@@ -129,7 +129,6 @@ SymbolTable getSymbols(InstructionList lines) {
 		{ "KBD", 24567 }
 	};
 	auto lineCount = 0;
-
 	for(auto line : lines) {
 		auto res = match{};
 		if(regex_match(line, res, Label)) {
@@ -141,6 +140,22 @@ SymbolTable getSymbols(InstructionList lines) {
 #ifdef DEBUG
 		std::cout << lineCount << "\t" << line << "\t#" << words << std::endl;
 #endif
+	}
+
+	auto newVariableAddress = 16;
+	for(auto line : lines) {
+		auto res = match{};
+		if (
+				regex_match(line, res, AInstr)
+				&& !regex_match(res[1].str(), Number)
+				&& table.find(res[1].str()) == table.end()
+		) {
+#ifdef DEBUG
+			std::cout << "new variable (" << newVariableAddress << "): " << res[1].str() << std::endl;
+#endif
+			table[res[1]] = newVariableAddress;
+			++newVariableAddress;
+		}
 	}
 	return table;
 }
