@@ -35,13 +35,6 @@ static int const CInstrBase = 0xE000;
 
 static int const IndirectionBit{12};
 
-static int const ZXBit    {11};
-static int const NXBit    {10};
-static int const ZYBit    {9};
-static int const NYBit    {8};
-static int const FBit     {7};
-static int const ZOBit    {6};
-
 static int const DstABit  {5};
 static int const DstDBit  {4};
 static int const DstMBit  {3};
@@ -73,7 +66,7 @@ static string assembleAInstr(string const& line, SymbolTable const& symbols) {
 	return rep.to_string();
 }
 
-bitset<16> assembleControlFlags(string VAL) {
+static bitset<16> assembleControlFlags(string const& VAL) {
 	for(auto kvp : ControlList) {
 		if(regex_match(VAL, *kvp.first)) {
 			return kvp.second;
@@ -83,57 +76,68 @@ bitset<16> assembleControlFlags(string VAL) {
 	return bitset<16> {0};
 }
 
+static bitset<16> assembleDSTFlags(string const& SET) {
+	auto m = match{};
+	auto ret = bitset<16>{0};
+	if(!regex_match(SET, m, CInstrDST)) {
+		//???
+		return 0;
+	} else if(m[1].length() + m[2].length() + m[3].length() == 0) {
+		//???
+		return 0;
+	}
+	ret[DstABit] = m[1].length() != 0;
+	ret[DstMBit] = m[2].length() != 0;
+	ret[DstDBit] = m[3].length() != 0;
+	return ret;
+}
+
+static bitset<16> assembleJMPFlags(string const& JMP) {
+	auto ret = bitset<16>{0};
+	ret[JMPLTBit] = regex_match(JMP, JMPLT);
+	ret[JMPEQBit] = regex_match(JMP, JMPEQ);
+	ret[JMPGTBit] = regex_match(JMP, JMPGT);
+	return ret;
+}
+
+static bitset<16> assembleIndirectionFlag(string const& VAL) {
+	auto ret = bitset<16>{0};
+	ret[IndirectionBit] = regex_match(VAL, regex(R"(.*M.*)"));
+	return ret;
+}
+
 static string assembleCInstr(string const& line, SymbolTable const& symbols) {
 #ifdef DEBUG
 	std::cout << "CInstr ";
 #endif
 	// categorise into JMP/SET/BOTH
-	string SET{};
-	string VAL{};
-	string JMP{};
 	match m;
+	bitset<16> instruction(CInstrBase);
+
+	// sub captures: 1: DST, 2: VAL, 3: JMP
 	if(regex_match(line, m, CInstrJMPSET)) {
-		SET = m[1].str();
-		VAL = m[2].str();
-		JMP = m[3].str();
+		instruction |= assembleDSTFlags(m[1].str());
+		instruction |= assembleIndirectionFlag(m[2].str());
+		instruction |= assembleControlFlags(m[2].str());
+		instruction |= assembleJMPFlags(m[3].str());
+
+	// sub captures: 1: DST, 2: VAL
 	} else if(regex_match(line, m, CInstrNoJMP)) {
-		SET = m[1].str();
-		VAL = m[2].str();
+		instruction |= assembleDSTFlags(m[1].str());
+		instruction |= assembleIndirectionFlag(m[2].str());
+		instruction |= assembleControlFlags(m[2].str());
+
+	// sub captures: 1: VAL, 2: JMP
 	} else if(regex_match(line, m, CInstrNoSET)) {
-		VAL = m[1].str();
-		JMP = m[2].str();
+		instruction |= assembleIndirectionFlag(m[1].str());
+		instruction |= assembleControlFlags(m[1].str());
+		instruction |= assembleJMPFlags(m[2].str());
+
 	} else {
 		// ???
+		return "";
 	}
 
-	bitset<16> instruction(CInstrBase);
-	// set DST flags
-	// TODO replace with a function
-	if(SET.length() != 0) {
-		if(!regex_match(SET, m, CInstrDST)) {
-			// ??? DST is garbage
-			return "";
-		} else if(m[1].length() + m[2].length() + m[3].length() == 0) {
-			// ??? DST doesn't have A, M, or D set
-			return "";
-		}
-		instruction[DstABit] = m[1].length() != 0;
-		instruction[DstMBit] = m[2].length() != 0;
-		instruction[DstDBit] = m[3].length() != 0;
-	}
-
-	// set indirection flag
-	instruction[IndirectionBit] = regex_match(VAL, regex(R"(.*M.*)"));
-
-	// set control flags
-	instruction |= assembleControlFlags(VAL);
-
-	// set jump flags
-	instruction[JMPLTBit] = regex_match(JMP, JMPLT);
-	instruction[JMPEQBit] = regex_match(JMP, JMPEQ);
-	instruction[JMPGTBit] = regex_match(JMP, JMPGT);
-
-	//output
 	return instruction.to_string();
 }
 
@@ -153,7 +157,7 @@ static string assembleNothing(string const &line, SymbolTable const& symbols) {
 	return "";
 }
 
-string assembleLine(string const& line, SymbolTable const& symbols) {
+static string assembleLine(string const& line, SymbolTable const& symbols) {
 	static map<regex*, string(*)(string const&, SymbolTable const&)> instrAssembler = {
 		{ &AInstr,  &assembleAInstr },
 		{ &CInstr,  &assembleCInstr },
