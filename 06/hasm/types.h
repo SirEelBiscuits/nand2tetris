@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <cinttypes>
+#include <regex>
 
 using Word = uint16_t;
 
@@ -15,3 +16,8 @@ using vector = std::vector<T>;
 
 using SymbolTable = map<string, Word>;
 using InstructionList = vector<string>;
+
+using regex = std::regex;
+using match = std::smatch;
+template<int n>
+using bitset = std::bitset<n>;

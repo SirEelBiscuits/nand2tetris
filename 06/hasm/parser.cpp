@@ -5,54 +5,10 @@
 
 #include <iostream>
 
-using regex = std::regex;
-using match = std::smatch;
-template<int n>
-using bitset = std::bitset<n>;
+#include "preprocess.h"
+#include "langDefinition.h"
 
-static regex Nothing { R"(^$)" };
-static regex Label  { R"(^\(([a-zA-Z._$][a-zA-Z._$0-9]*)\)$)" };
-static regex AInstr { R"(^@([a-zA-Z0-9._$]+)$)" };
-static regex CInstr { R"(^(.*=.*;.*|.*;.*|.*=.*)$)" };
-
-static regex Number { R"([1-9][0-9]*|0)" };
-
-static regex CInstrNoJMP  { R"(^(.*)=(.*)$)" };
-static regex CInstrNoSET  { R"(^(.*);(.*)$)" };
-static regex CInstrJMPSET { R"(^(.*)=(.*);(.*)$)" };
-
-static regex CInstrDST    { R"(^(A)?(M)?(D)?$)" };
-
-static regex JMPLT { R"(JLT|JNE|JLE|JMP)" };
-static regex JMPEQ { R"(JEQ|JGE|JLE|JMP)" };
-static regex JMPGT { R"(JGT|JGE|JNE|JMP)" };
-
-// regex* because regex doesn't have operator< defined, which is needed
-static map<regex*, size_t> wordCountLookup = {
- 	{&AInstr, 1},
- 	{&CInstr, 1},
- 	{&Label, 0},
-	{&Nothing, 0}
-};
-
-static regex CInstrZero    { R"(^0$)" };
-static regex CInstrOne     { R"(^1$)" };
-static regex CInstrNegOne  { R"(^-1$)" };
-static regex CInstrD       { R"(^D$)" };
-static regex CInstrAM      { R"(^[AM]$)" };
-static regex CInstrNotD    { R"(^!D$)" };
-static regex CInstrNotAM   { R"(^![AM]$)" };
-static regex CInstrNegD    { R"(^-D$)" };
-static regex CInstrNegAM   { R"(^-[AM]$)" };
-static regex CInstrIncD    { R"(^D[+]1$)" };
-static regex CInstrIncAM   { R"(^[AM][+]1$)" };
-static regex CInstrDecD    { R"(^D-1$)" };
-static regex CInstrDecAM   { R"(^[AM]-1$)" };
-static regex CInstrSum     { R"(^D[+][AM]$)" };
-static regex CInstrDLessAM { R"(^D-[AM]$)" };
-static regex CInstrAMLessD { R"(^[AM]-D$)" };
-static regex CInstrDAndAM  { R"(^D&[AM]$)" };
-static regex CInstrDOrAM   { R"(^D[|][AM]$)" };
+#include "symbolgen.h"
 
 static map<regex*, bitset<16>> ControlList = {
 	{ &CInstrZero,    0b101010 << 6},
@@ -94,73 +50,7 @@ static int const JMPLTBit {2};
 static int const JMPEQBit {1};
 static int const JMPGTBit {0};
 
-int getWordsInLine(string line) {
-	for(auto kvp : wordCountLookup) {
-		if(regex_match(line, *kvp.first))
-			return kvp.second;
-	}
-	return 0;
-}
-
-SymbolTable getSymbols(InstructionList lines) {
-	auto table = SymbolTable {
-		{ "R0", 0 },
-		{ "R1", 1 },
-		{ "R2", 2 },
-		{ "R3", 3 },
-		{ "R4", 4 },
-		{ "R5", 5 },
-		{ "R6", 6 },
-		{ "R7", 7 },
-		{ "R8", 8 },
-		{ "R9", 9 },
-		{ "R10", 10 },
-		{ "R11", 11 },
-		{ "R12", 12 },
-		{ "R13", 13 },
-		{ "R14", 14 },
-		{ "R15", 15 },
-		{ "SP", 0 },
-		{ "LCL", 1 },
-		{ "ARG", 2 },
-		{ "THIS", 3 },
-		{ "THAT", 4 },
-		{ "SCREEN", 16384 },
-		{ "KBD", 24567 }
-	};
-	auto lineCount = 0;
-	for(auto line : lines) {
-		auto res = match{};
-		if(regex_match(line, res, Label)) {
-			table[res[1]] = lineCount;
-		}
-		auto words = getWordsInLine(line);
-		lineCount += words;
-
-#ifdef DEBUG
-		std::cout << lineCount << "\t" << line << "\t#" << words << std::endl;
-#endif
-	}
-
-	auto newVariableAddress = 16;
-	for(auto line : lines) {
-		auto res = match{};
-		if (
-				regex_match(line, res, AInstr)
-				&& !regex_match(res[1].str(), Number)
-				&& table.find(res[1].str()) == table.end()
-		) {
-#ifdef DEBUG
-			std::cout << "new variable (" << newVariableAddress << "): " << res[1].str() << std::endl;
-#endif
-			table[res[1]] = newVariableAddress;
-			++newVariableAddress;
-		}
-	}
-	return table;
-}
-
-string assembleAInstr(string const& line, SymbolTable const& symbols) {
+static string assembleAInstr(string const& line, SymbolTable const& symbols) {
 #ifdef DEBUG
 	std::cout << "AInstr ";
 #endif
@@ -193,7 +83,7 @@ bitset<16> assembleControlFlags(string VAL) {
 	return bitset<16> {0};
 }
 
-string assembleCInstr(string const& line, SymbolTable const& symbols) {
+static string assembleCInstr(string const& line, SymbolTable const& symbols) {
 #ifdef DEBUG
 	std::cout << "CInstr ";
 #endif
@@ -247,10 +137,28 @@ string assembleCInstr(string const& line, SymbolTable const& symbols) {
 	return instruction.to_string();
 }
 
+static string assembleLabel(string const &line, SymbolTable const& symbols) {
+#ifdef DEBUG
+	auto res = match{};
+	regex_match(line, res, Label);
+	std::cout << "Label: \"" << res[1].str() << "\"";
+#endif
+	return "";
+}
+
+static string assembleNothing(string const &line, SymbolTable const& symbols) {
+#ifdef DEBUG
+	std::cout << "Nothing ";
+#endif
+	return "";
+}
+
 string assembleLine(string const& line, SymbolTable const& symbols) {
 	static map<regex*, string(*)(string const&, SymbolTable const&)> instrAssembler = {
-		{ &AInstr, &assembleAInstr },
-		{ &CInstr, &assembleCInstr }
+		{ &AInstr,  &assembleAInstr },
+		{ &CInstr,  &assembleCInstr },
+		{ &Label,   &assembleLabel  },
+		{ &Nothing, &assembleNothing }
 	};
 	auto res = match{};
 	for(auto kvp : instrAssembler) {
@@ -269,7 +177,7 @@ string assembleFile(InstructionList const& program) {
 	auto lineNum = 0;
 	for(auto line : program) {
 		++lineNum;
-		auto assembledLine = assembleLine(line, symbols);
+		auto assembledLine = assembleLine(Preprocess(line), symbols);
 		if(assembledLine.length() > 0)
 			output += assembledLine + "\n";
 #ifdef DEBUG

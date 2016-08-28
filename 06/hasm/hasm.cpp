@@ -35,9 +35,6 @@ InstructionList getWholeFile(string fileName) {
 	string line;
 	InstructionList lines{};
 	while(getline(file, line)) {
-		line = regex_replace(line, std::regex("\[[:space:]]"), "");
-		line = regex_replace(line, std::regex("//.*$"), "");
-		line = regex_replace(line, std::regex("\[[:space:]]"), "");
 		lines.push_back(line);
 	}
 
